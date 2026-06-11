@@ -27,6 +27,9 @@ celery.conf.update(
     task_track_started=True,
     timezone="UTC",
     enable_utc=True,
+    # Keep retrying the broker connection at startup (worker/beat may boot a hair
+    # before Redis is reachable); also silences a Celery 6 deprecation warning.
+    broker_connection_retry_on_startup=True,
     beat_schedule={
         "cleanup-unverified-users": {
             "task": "app.workers.tasks.cleanup_unverified_users",
