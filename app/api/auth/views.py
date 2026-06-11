@@ -44,7 +44,10 @@ async def signup(
     "/login",
     response_model=TokenPair,
     summary="Log in and obtain tokens",
-    description="Validate credentials and return a JWT access + refresh token pair.",
+    description=(
+        "Validate credentials and return a JWT access + refresh token pair. "
+        "The account must be verified — returns 403 otherwise."
+    ),
 )
 async def login(
     payload: LoginRequest, repo: BaseRepo = Depends(get_repo)

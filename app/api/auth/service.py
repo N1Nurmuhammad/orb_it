@@ -57,16 +57,22 @@ async def signup(repo: BaseRepo, otp_store: OTPStore, data: SignupRequest) -> Us
 
 
 async def login(repo: BaseRepo, email: str, password: str) -> dict:
-    """Validate credentials and issue an access + refresh token pair."""
+    """Validate credentials and issue an access + refresh token pair.
+
+    Only verified accounts may obtain tokens — an unverified user must complete
+    POST /auth/verify first.
+    """
     user = await repo.users.get_by_email(email)
     if not user or not verify_password(password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password.",
         )
-    # Login is allowed before verification (tokens still issued); endpoints that
-    # require a verified account can check `is_verified`. This is a documented
-    # default — flip it here to enforce verified-only login.
+    if not user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account not verified. Please verify your email first.",
+        )
     return {
         "access_token": create_access_token(user.id, user.role.value),
         "refresh_token": create_refresh_token(user.id, user.role.value),

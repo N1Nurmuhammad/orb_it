@@ -69,10 +69,24 @@ async def test_verify_wrong_code(client):
     assert r.status_code == 400
 
 
+async def test_login_unverified_forbidden(client):
+    # An unverified account must not obtain tokens.
+    await client.post(
+        "/auth/signup", json={"email": "unv@example.com", "password": "password123"}
+    )
+    r = await client.post(
+        "/auth/login", json={"email": "unv@example.com", "password": "password123"}
+    )
+    assert r.status_code == 403
+
+
 async def test_refresh_rejects_access_token(client):
     await client.post(
         "/auth/signup", json={"email": "z@example.com", "password": "password123"}
     )
+    # must verify before login is permitted
+    code = await get_verification_code("z@example.com")
+    await client.post("/auth/verify", json={"email": "z@example.com", "code": code})
     tokens = (
         await client.post(
             "/auth/login", json={"email": "z@example.com", "password": "password123"}

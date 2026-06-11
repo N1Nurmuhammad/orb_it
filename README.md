@@ -116,7 +116,8 @@ off it. Schema is owned by Alembic, never `create_all`.
 
 JWT access + refresh tokens (`PyJWT`, HS256). Each token carries `sub` (user id),
 `role`, `exp`, and a `type` claim so `/auth/refresh` rejects access tokens.
-Passwords are hashed with `bcrypt`.
+Passwords are hashed with `bcrypt`. **Only verified accounts can log in** —
+`POST /auth/login` returns `403` until the user completes `POST /auth/verify`.
 
 ### Roles
 
@@ -147,7 +148,7 @@ Celery Beat runs `cleanup_unverified_users` every `CLEANUP_INTERVAL_MINUTES`
 | Method | Path            | Access            | Description                       |
 |--------|-----------------|-------------------|-----------------------------------|
 | POST   | `/auth/signup`  | public            | Register (unverified)             |
-| POST   | `/auth/login`   | public            | Issue access + refresh tokens     |
+| POST   | `/auth/login`   | public            | Issue tokens (verified users only)|
 | POST   | `/auth/refresh` | public (refresh)  | New access token                  |
 | POST   | `/auth/verify`  | public            | Confirm account with code         |
 | GET    | `/me`           | authenticated     | Current user                      |
@@ -177,8 +178,6 @@ hardened given more time:
 
 - **Refresh tokens are stateless** — no server-side allowlist, so no rotation or
   revocation. Production: persist a token/jti record per session and rotate on use.
-- **Login is allowed before verification** (tokens issued, `is_verified=false`).
-  A one-line toggle in `services/auth.login` can enforce verified-only login.
 - **Verification sender is console-only** here; the `Sender` ABC is the seam for
   real email/SMS providers.
 - **Celery task uses `asyncio.run`** over the async repo for a single source of
